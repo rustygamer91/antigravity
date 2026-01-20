@@ -1,0 +1,51 @@
+name: Daily Mission (Antigravity)
+
+on:
+  schedule:
+    # Run every day at 08:00 UTC
+    - cron: '0 8 * * *'
+  workflow_dispatch:
+    # Allow manual triggering
+
+permissions:
+  contents: write
+
+jobs:
+  daily-mission:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Install Playwright Browsers
+        run: |
+          playwright install chromium
+
+      - name: 1. Collect Data (Agent 1)
+        run: |
+          python missions/vancouver_port/agents/collector.py
+
+      - name: 2. Clean Data (Agent 2)
+        run: |
+          python missions/vancouver_port/agents/cleaner.py
+
+      - name: 3. Bake Dashboard (static gen)
+        run: |
+          python tools/bake.py vancouver_port
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./missions/vancouver_port/output
